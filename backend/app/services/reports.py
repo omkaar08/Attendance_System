@@ -198,74 +198,82 @@ async def subject_report(
 ) -> SubjectReportResponse:
     _check_date_range(from_date, to_date)
 
-    stmt = (
-        select(
-            Subject.id.label("subject_id"),
-            Subject.name.label("subject_name"),
-            Subject.code.label("subject_code"),
-            Department.id.label("department_id"),
-            Department.name.label("department_name"),
-            Faculty.id.label("faculty_id"),
-            User.full_name.label("faculty_name"),
-            Subject.semester,
-            Subject.section,
-            func.count(Attendance.id).label("total_records"),
-            func.count(func.distinct(Attendance.student_id)).label("unique_students"),
-            func.sum(_present_case).label("present_count"),
-            func.sum(_absent_case).label("absent_count"),
-            func.sum(_late_case).label("late_count"),
-        )
-        .join(Subject, Subject.id == Attendance.subject_id)
-        .join(Department, Department.id == Subject.department_id)
-        .join(Faculty, Faculty.id == Subject.faculty_id)
-        .join(User, User.id == Faculty.user_id)
-        .where(Attendance.class_date.between(from_date, to_date))
-        .group_by(
-            Subject.id,
-            Subject.name,
-            Subject.code,
-            Department.id,
-            Department.name,
-            Faculty.id,
-            User.full_name,
-            Subject.semester,
-            Subject.section,
-        )
-        .order_by(Department.name, Subject.code, Subject.section)
-    )
+    # Get all subjects in scope
+    subjects_stmt = select(
+        Subject.id,
+        Subject.name,
+        Subject.code,
+        Subject.semester,
+        Subject.section,
+        Department.id.label("department_id"),
+        Department.name.label("department_name"),
+        Faculty.id.label("faculty_id"),
+        User.full_name.label("faculty_name"),
+    ).join(Department, Department.id == Subject.department_id).join(Faculty, Faculty.id == Subject.faculty_id).join(User, User.id == Faculty.user_id)
 
-    stmt = _apply_role_scope(stmt, principal)
+    # Apply role-based filtering
+    if principal.role == AppRole.HOD:
+        subjects_stmt = subjects_stmt.where(Subject.department_id == principal.department_id)
+    elif principal.role == AppRole.FACULTY:
+        if principal.faculty_id is None:
+            raise ApplicationError(
+                status_code=403,
+                code="faculty_profile_missing",
+                message="Faculty profile not found.",
+            )
+        subjects_stmt = subjects_stmt.where(Subject.faculty_id == principal.faculty_id)
+    elif principal.role == AppRole.ADMIN and department_id is not None:
+        subjects_stmt = subjects_stmt.where(Subject.department_id == department_id)
 
     if subject_id is not None:
         await get_subject_for_principal(session, principal, subject_id)
-        stmt = stmt.where(Attendance.subject_id == subject_id)
-    elif department_id is not None and principal.role == AppRole.ADMIN:
-        stmt = stmt.where(Subject.department_id == department_id)
+        subjects_stmt = subjects_stmt.where(Subject.id == subject_id)
 
-    rows = (await session.execute(stmt)).all()
+    subjects_stmt = subjects_stmt.order_by(Department.name, Subject.code, Subject.section)
+    subjects = (await session.execute(subjects_stmt)).all()
+
     items = []
-    for row in rows:
-        total = int(row.total_records or 0)
-        present = int(row.present_count or 0)
+    for subject_row in subjects:
+        # LEFT JOIN attendance for this subject in date range
+        attendance_stmt = (
+            select(
+                func.count(Attendance.id).label("total_records"),
+                func.count(func.distinct(Attendance.student_id)).label("unique_students"),
+                func.sum(_present_case).label("present_count"),
+                func.sum(_absent_case).label("absent_count"),
+                func.sum(_late_case).label("late_count"),
+            )
+            .where(
+                Attendance.subject_id == subject_row.id,
+                Attendance.class_date.between(from_date, to_date)
+            )
+        )
+
+        attendance_data = (await session.execute(attendance_stmt)).one()
+        
+        total = int(attendance_data.total_records or 0)
+        present = int(attendance_data.present_count or 0)
+        
         items.append(
             SubjectAttendanceSummaryRow(
-                subject_id=row.subject_id,
-                subject_name=row.subject_name,
-                subject_code=row.subject_code,
-                department_id=row.department_id,
-                department_name=row.department_name,
-                faculty_id=row.faculty_id,
-                faculty_name=row.faculty_name,
-                semester=int(row.semester),
-                section=row.section,
+                subject_id=subject_row.id,
+                subject_name=subject_row.name,
+                subject_code=subject_row.code,
+                department_id=subject_row.department_id,
+                department_name=subject_row.department_name,
+                faculty_id=subject_row.faculty_id,
+                faculty_name=subject_row.faculty_name,
+                semester=int(subject_row.semester),
+                section=subject_row.section,
                 total_records=total,
-                unique_students=int(row.unique_students or 0),
+                unique_students=int(attendance_data.unique_students or 0),
                 present_count=present,
-                absent_count=int(row.absent_count or 0),
-                late_count=int(row.late_count or 0),
+                absent_count=int(attendance_data.absent_count or 0),
+                late_count=int(attendance_data.late_count or 0),
                 attendance_percent=round(present / total * 100, 2) if total else 0.0,
             )
         )
+    
     return SubjectReportResponse(items=items, total_rows=len(items))
 
 

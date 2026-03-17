@@ -1,1 +1,1 @@
-"""mmattend backend application package."""
+"""visionattend backend application package."""

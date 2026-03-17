@@ -14,8 +14,9 @@ from app.schemas.attendance import (
     AttendanceMarkResponse,
     AttendanceReportResponse,
     LowAttendanceAlertResponse,
+    ManualAttendanceRequest,
 )
-from app.services.attendance import low_attendance_alerts, mark_attendance, report_attendance
+from app.services.attendance import low_attendance_alerts, mark_attendance, mark_attendance_manual, report_attendance
 
 router = APIRouter()
 
@@ -27,6 +28,15 @@ async def create_attendance(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AttendanceMarkResponse:
     return await mark_attendance(session=session, principal=principal, payload=payload)
+
+
+@router.post("/mark-manual")
+async def mark_attendance_manually(
+    payload: ManualAttendanceRequest,
+    principal: Annotated[Principal, Depends(require_roles(AppRole.FACULTY))],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AttendanceMarkResponse:
+    return await mark_attendance_manual(session=session, principal=principal, payload=payload)
 
 
 @router.get("/report")

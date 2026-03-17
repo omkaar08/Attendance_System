@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { authApi, setAuthToken } from '../lib/api'
 import type { AppRole, CurrentUserResponse, LoginRequest, LoginUser } from '../lib/types'
 
-const STORAGE_KEY = 'attendra.session'
+const STORAGE_KEY = 'visionattend.session'
 
 type SessionUser = LoginUser & {
   full_name?: string | null

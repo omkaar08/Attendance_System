@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import ApplicationError
 from app.core.security import Principal
 from app.db.models import AppRole, Attendance, AttendanceStatus, Faculty, Student, Subject
-from app.schemas.analytics import AnalyticsOverviewResponse
+from app.schemas.analytics import AnalyticsOverviewResponse, SubjectAttendanceResponse, SubjectAttendanceItem
 from app.services.subjects import get_subject_for_principal
 
 
@@ -76,8 +76,8 @@ async def get_analytics_overview(
 
     today_attendance_percent = round((today_present_students / total_students) * 100, 2) if total_students else 0.0
     average_attendance_percent = (
-        round((int(total_attendance_rows) / max(int(distinct_attendance_students or 0), 1)) * 100, 2)
-        if total_attendance_rows
+        round((int(distinct_attendance_students or 0) / max(int(total_students or 0), 1)) * 100, 2)
+        if total_students
         else 0.0
     )
 
@@ -88,3 +88,71 @@ async def get_analytics_overview(
         today_attendance_percent=today_attendance_percent,
         average_attendance_percent=average_attendance_percent,
     )
+
+
+async def get_subject_attendance_stats(
+    *,
+    session: AsyncSession,
+    principal: Principal,
+    department_id: UUID | None,
+) -> SubjectAttendanceResponse:
+    """Get average attendance percentage for each subject."""
+    # Determine which department to use
+    if principal.role == AppRole.HOD:
+        target_department_id = principal.department_id
+    elif principal.role == AppRole.ADMIN:
+        target_department_id = department_id
+    else:
+        raise ApplicationError(status_code=403, code="insufficient_permissions", message="Access denied.")
+
+    # Get all subjects in the department
+    subjects_stmt = select(Subject).where(Subject.department_id == target_department_id).order_by(Subject.name)
+    subjects = (await session.execute(subjects_stmt)).scalars().all()
+
+    items = []
+    for subject in subjects:
+        # Count distinct sessions (unique combinations of class_date and session_key)
+        distinct_sessions_subquery = (
+            select(Attendance.class_date, Attendance.session_key)
+            .where(Attendance.subject_id == subject.id)
+            .distinct()
+            .subquery()
+        )
+        total_sessions_stmt = select(func.count()).select_from(distinct_sessions_subquery)
+
+        total_students_stmt = select(func.count(distinct(Student.id))).where(
+            and_(
+                Student.department_id == target_department_id,
+                Student.semester == subject.semester,
+                Student.section == subject.section,
+            )
+        )
+
+        # Count total attendance records (present marks) for this subject
+        attendance_count_stmt = select(func.count(Attendance.id)).where(
+            and_(
+                Attendance.subject_id == subject.id,
+                Attendance.status == AttendanceStatus.PRESENT,
+            )
+        )
+
+        total_sessions = int((await session.execute(total_sessions_stmt)).scalar_one() or 0)
+        total_students = int((await session.execute(total_students_stmt)).scalar_one() or 0)
+        attendance_count = int((await session.execute(attendance_count_stmt)).scalar_one() or 0)
+
+        # Calculate percentage: (total present marks) / (total sessions * total students) * 100
+        if total_sessions > 0 and total_students > 0:
+            attendance_percent = round((attendance_count / (total_sessions * total_students)) * 100, 2)
+        else:
+            attendance_percent = 0.0
+
+        items.append(
+            SubjectAttendanceItem(
+                subject_id=subject.id,
+                subject_name=subject.name,
+                subject_code=subject.code,
+                attendance_percent=attendance_percent,
+            )
+        )
+
+    return SubjectAttendanceResponse(items=items)

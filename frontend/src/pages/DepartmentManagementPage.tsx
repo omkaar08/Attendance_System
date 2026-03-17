@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useQuery } from '@tanstack/react-query'
-import { Building2, ShieldCheck, Trash2 } from 'lucide-react'
+import { Building2, ShieldCheck } from 'lucide-react'
 
 import { PageHeader } from '../components/ui/PageHeader'
 import { getErrorMessage, managementApi } from '../lib/api'
@@ -24,7 +24,7 @@ export const DepartmentManagementPage = () => {
 
   const [isSavingDepartment, setIsSavingDepartment] = useState(false)
   const [isSavingHod, setIsSavingHod] = useState(false)
-  const [deletingDepartmentId, setDeletingDepartmentId] = useState<string | null>(null)
+
 
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +42,7 @@ export const DepartmentManagementPage = () => {
     if (departmentsQuery.isLoading) {
       return (
         <tr>
-          <td colSpan={7} className="py-5 text-slate-500">Loading departments...</td>
+          <td colSpan={5} className="py-5 text-slate-500">Loading departments...</td>
         </tr>
       )
     }
@@ -50,7 +50,7 @@ export const DepartmentManagementPage = () => {
     if (departments.length === 0) {
       return (
         <tr>
-          <td colSpan={7} className="py-5 text-slate-500">No departments configured yet.</td>
+          <td colSpan={5} className="py-5 text-slate-500">No departments configured yet.</td>
         </tr>
       )
     }
@@ -65,18 +65,6 @@ export const DepartmentManagementPage = () => {
         <td className="py-3 text-slate-700">{department.total_subjects}</td>
         <td className="py-3 text-slate-700">{department.total_students}</td>
         <td className="py-3 text-slate-700">{department.hod_name ?? 'Not assigned'}</td>
-        <td className="py-3 text-slate-700">{department.attendance_percent.toFixed(1)}%</td>
-        <td className="py-3">
-          <button
-            type="button"
-            onClick={() => handleDeleteDepartment(department.id)}
-            disabled={deletingDepartmentId === department.id}
-            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-70"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {deletingDepartmentId === department.id ? 'Deleting...' : 'Delete'}
-          </button>
-        </td>
       </tr>
     ))
   }
@@ -103,24 +91,7 @@ export const DepartmentManagementPage = () => {
     }
   }
 
-  const handleDeleteDepartment = async (departmentId: string) => {
-    setStatus(null)
-    setError(null)
-    setDeletingDepartmentId(departmentId)
 
-    try {
-      await managementApi.deleteDepartment(departmentId)
-      await departmentsQuery.refetch()
-      setStatus('Department deleted successfully.')
-      if (selectedDepartmentId === departmentId) {
-        setSelectedDepartmentId('')
-      }
-    } catch (submitError) {
-      setError(getErrorMessage(submitError))
-    } finally {
-      setDeletingDepartmentId(null)
-    }
-  }
 
   const handleAssignHod = async (event: { preventDefault(): void }) => {
     event.preventDefault()
@@ -311,8 +282,6 @@ export const DepartmentManagementPage = () => {
                 <th className="py-3">Subjects</th>
                 <th className="py-3">Students</th>
                 <th className="py-3">HOD Assigned</th>
-                <th className="py-3">Avg Attendance</th>
-                <th className="py-3">Actions</th>
               </tr>
             </thead>
             <tbody>

@@ -3,7 +3,7 @@ export interface CameraDevice {
   label: string
 }
 
-const cameraStorageKey = 'attendra.camera.deviceId'
+const cameraStorageKey = 'visionattend.camera.deviceId'
 const externalCameraPattern = /(usb|webcam|external|brio|logitech)/i
 const integratedCameraPattern = /(integrated|built-in|facetime|front)/i
 

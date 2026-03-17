@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", env_ignore_empty=True, extra="ignore")
 
-    app_name: str = "mmattend-backend"
+    app_name: str = "visionattend-backend"
     app_env: str = "development"
     api_v1_prefix: str = "/v1"
     backend_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])

@@ -13,6 +13,8 @@ const DepartmentManagementPage = lazy(() =>
 const FacultyManagementPage = lazy(() =>
   import('../pages/FacultyManagementPage').then((module) => ({ default: module.FacultyManagementPage })),
 )
+const HeroPage = lazy(() => import('../pages/HeroPage').then((module) => ({ default: module.HeroPage })))
+const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
 const LoginPage = lazy(() => import('../pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const MarkAttendancePage = lazy(() =>
   import('../pages/MarkAttendancePage').then((module) => ({ default: module.MarkAttendancePage })),
@@ -43,6 +45,20 @@ const ProtectedLayout = () => {
   }
 
   return <AppShell />
+}
+
+const RootGuard = () => {
+  const { isAuthenticated, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) {
+    return <FullPageLoader />
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return withSuspense(<HeroPage />)
 }
 
 const LoginGuard = () => {
@@ -90,15 +106,22 @@ const NotFoundPage = () => (
 
 export const router = createBrowserRouter([
   {
+    path: '/',
+    element: <RootGuard />,
+  },
+  {
+    path: '/home',
+    element: withSuspense(<HomePage />),
+  },
+  {
     path: '/login',
     element: <LoginGuard />,
   },
   {
-    path: '/',
+    path: '/dashboard',
     element: <ProtectedLayout />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: 'dashboard', element: withSuspense(<DashboardPage />) },
+      { index: true, element: withSuspense(<DashboardPage />) },
       { path: 'students', element: withSuspense(<StudentsPage />) },
       {
         path: 'register-student',

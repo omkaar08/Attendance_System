@@ -18,24 +18,24 @@ import type { AppRole } from '../../lib/types'
 const navItemsByRole: Record<AppRole, Array<{ to: string; label: string; icon: typeof BarChart3 }>> = {
   faculty: [
     { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { to: '/students', label: 'Students', icon: School },
-    { to: '/register-student', label: 'Register Student', icon: UserPlus },
-    { to: '/mark-attendance', label: 'Mark Attendance', icon: Camera },
-    { to: '/reports', label: 'Reports', icon: FileText },
+    { to: '/dashboard/students', label: 'Students', icon: School },
+    { to: '/dashboard/register-student', label: 'Register Student', icon: UserPlus },
+    { to: '/dashboard/mark-attendance', label: 'Mark Attendance', icon: Camera },
+    { to: '/dashboard/reports', label: 'Reports', icon: FileText },
   ],
   hod: [
     { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { to: '/students', label: 'Students', icon: School },
-    { to: '/register-student', label: 'Register Student', icon: UserPlus },
-    { to: '/faculty-management', label: 'Faculty & Subject Management', icon: Users2 },
-    { to: '/reports', label: 'Reports', icon: FileText },
+    { to: '/dashboard/students', label: 'Faculty List', icon: School },
+    { to: '/dashboard/register-student', label: 'Register Student', icon: UserPlus },
+    { to: '/dashboard/faculty-management', label: 'Faculty & Subject Management', icon: Users2 },
+    { to: '/dashboard/reports', label: 'Reports', icon: FileText },
   ],
   admin: [
     { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { to: '/students', label: 'Students', icon: School },
-    { to: '/faculty-management', label: 'Faculty Management', icon: Users2 },
-    { to: '/department-management', label: 'Department Management', icon: Building2 },
-    { to: '/reports', label: 'Reports', icon: FileText },
+    { to: '/dashboard/students', label: 'Faculty List', icon: School },
+    { to: '/dashboard/faculty-management', label: 'Faculty Management', icon: Users2 },
+    { to: '/dashboard/department-management', label: 'Department Management', icon: Building2 },
+    { to: '/dashboard/reports', label: 'Reports', icon: FileText },
   ],
 }
 
@@ -54,15 +54,11 @@ export const AppShell = () => {
     <div className="min-h-screen bg-surface pb-8 text-slate-800">
       <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-6 px-4 pt-4 md:px-6 lg:grid-cols-[280px_1fr]">
         <aside className="glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-3xl p-6 shadow-soft lg:flex">
-          <div className="mb-8 flex items-center gap-3">
-            <img src="/brand-mark.svg" alt="MMAttend Logo" className="h-11 w-11" />
-            <div>
-              <p className="font-display text-lg font-semibold text-brand-900">Attendra</p>
-              <p className="text-xs uppercase tracking-[0.2em] text-brand-600">Faculty Studio</p>
-            </div>
+          <div className="mb-8 flex flex-col items-center gap-4 border-b border-slate-200 pb-8">
+            <img src="/visionattend-logo.svg" alt="VISIONATTEND" className="h-24 w-24 rounded-2xl" />
           </div>
 
-          <nav className="space-y-2">
+          <nav className="flex-1 space-y-2">
             {visibleNavItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
@@ -77,7 +73,7 @@ export const AppShell = () => {
                 }
               >
                 <span className="flex items-center gap-3">
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-5 w-5" />
                   {label}
                 </span>
                 {pathname === to ? <NotebookTabs className="h-4 w-4" /> : null}
@@ -85,10 +81,19 @@ export const AppShell = () => {
             ))}
           </nav>
 
-          <div className="mt-auto rounded-2xl bg-white/80 p-4 text-xs text-slate-600">
-            <p className="font-semibold text-slate-800">Live Backend</p>
-            <p className="mt-1">Connected to FastAPI and Supabase with secure JWT auth.</p>
-            {role === 'admin' ? <p className="mt-2 text-[11px] text-slate-500">Admin mode shows analytics and master student data. Subject-linked capture workflows are faculty-oriented.</p> : null}
+          <div className="border-t border-slate-200 pt-4">
+            <div className="rounded-2xl bg-gradient-to-br from-brand-50 to-slate-50 p-4 text-center">
+              <p className="font-display font-bold text-brand-900">VISIONATTEND</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500 mt-1">Attendance System</p>
+              <p className="mt-3 text-xs font-medium text-slate-600">
+                {role === 'admin' 
+                  ? 'System Admin'
+                  : role === 'hod'
+                  ? 'Head of Department'
+                  : 'Faculty Member'
+                }
+              </p>
+            </div>
           </div>
         </aside>
 

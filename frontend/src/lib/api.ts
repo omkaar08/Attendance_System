@@ -164,6 +164,11 @@ export const analyticsApi = {
     const { data } = await api.get<AnalyticsOverviewResponse>('/analytics/overview', { params })
     return data
   },
+
+  subjectAttendance: async (params?: { department_id?: string }) => {
+    const { data } = await api.get('/analytics/subject-attendance', { params })
+    return data
+  },
 }
 
 export const attendanceApi = {
@@ -174,6 +179,17 @@ export const attendanceApi = {
     section?: string
   }): Promise<AttendanceReportResponse> => {
     const { data } = await api.get<AttendanceReportResponse>('/attendance/report', { params })
+    return data
+  },
+
+  markManual: async (payload: {
+    subject_id: string
+    student_id: string
+    class_date: string
+    status: 'present' | 'absent' | 'late'
+    session_label?: string
+  }) => {
+    const { data } = await api.post('/attendance/mark-manual', payload)
     return data
   },
 

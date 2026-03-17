@@ -18,6 +18,7 @@ from app.schemas.attendance import (
     AttendanceReportItem,
     AttendanceReportResponse,
     AttendanceReportSummary,
+    ManualAttendanceRequest,
 )
 from app.services.subjects import get_subject_for_principal
 
@@ -106,6 +107,91 @@ async def mark_attendance(
 
     await session.commit()
     return AttendanceMarkResponse(accepted=accepted, duplicates=duplicate_rows)
+
+
+async def mark_attendance_manual(
+    *,
+    session: AsyncSession,
+    principal: Principal,
+    payload: ManualAttendanceRequest,
+) -> AttendanceMarkResponse:
+    """Mark attendance manually for a single student on a specific date."""
+    subject = await get_subject_for_principal(session, principal, payload.subject_id)
+
+    # Validate that the student belongs to the subject
+    student = (
+        await session.execute(
+            select(Student).where(
+                and_(
+                    Student.id == payload.student_id,
+                    Student.department_id == subject.department_id,
+                    Student.semester == subject.semester,
+                    Student.section == subject.section,
+                )
+            )
+        )
+    ).scalar_one_or_none()
+
+    if not student:
+        raise ApplicationError(
+            status_code=400,
+            code="student_subject_mismatch",
+            message="Student does not belong to the selected subject cohort.",
+        )
+
+    # Check for duplicate attendance record on the same date
+    existing = (
+        await session.execute(
+            select(Attendance).where(
+                and_(
+                    Attendance.subject_id == payload.subject_id,
+                    Attendance.student_id == payload.student_id,
+                    Attendance.class_date == payload.class_date,
+                )
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        return AttendanceMarkResponse(
+            accepted=[],
+            duplicates=[
+                AttendanceDuplicate(
+                    student_id=payload.student_id,
+                    reason="Attendance already exists for this date.",
+                )
+            ],
+        )
+
+    # Create attendance record
+    attendance = Attendance(
+        student_id=payload.student_id,
+        subject_id=subject.id,
+        faculty_id=subject.faculty_id,
+        marked_by_user_id=principal.user_id,
+        class_date=payload.class_date,
+        session_key="manual",
+        session_label=payload.session_label,
+        status=payload.status,
+        confidence_score=1.0,  # Manual marking has 100% confidence
+        recognition_metadata={"method": "manual"},
+    )
+    session.add(attendance)
+    await session.flush()
+
+    await session.commit()
+    return AttendanceMarkResponse(
+        accepted=[
+            AttendanceAccepted(
+                student_id=attendance.student_id,
+                attendance_id=attendance.id,
+                confidence_score=1.0,
+                created_at=attendance.created_at,
+            )
+        ],
+        duplicates=[],
+    )
+
 
 
 async def report_attendance(

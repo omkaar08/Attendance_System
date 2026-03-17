@@ -21,6 +21,14 @@ class AttendanceMarkRequest(BaseModel):
     entries: list[AttendanceEntry] = Field(min_length=1, max_length=200)
 
 
+class ManualAttendanceRequest(BaseModel):
+    subject_id: UUID
+    student_id: UUID
+    class_date: date
+    status: AttendanceStatus
+    session_label: str = Field(default="Manual Entry", min_length=1, max_length=120)
+
+
 class AttendanceAccepted(BaseModel):
     student_id: UUID
     attendance_id: UUID

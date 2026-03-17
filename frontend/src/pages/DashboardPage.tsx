@@ -14,17 +14,18 @@ import {
   Tooltip,
 } from 'chart.js'
 import { motion } from 'framer-motion'
+import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
-  AlertTriangle,
+  AlertCircle,
   Building2,
+  Calendar,
   CalendarDays,
   Download,
   GraduationCap,
   Layers3,
   Users,
 } from 'lucide-react'
-import { Doughnut, Line } from 'react-chartjs-2'
 import { Link } from 'react-router-dom'
 
 import { PageHeader } from '../components/ui/PageHeader'
@@ -33,6 +34,14 @@ import { analyticsApi, attendanceApi, facultyApi, getErrorMessage, managementApi
 import type { AppRole } from '../lib/types'
 import { useAuth } from '../providers/AuthProvider'
 import { downloadCsv, downloadExcel, downloadPdf } from '../lib/reportExport'
+
+interface StatCardData {
+  title: string
+  value: string
+  subtitle: string
+  icon: LucideIcon
+  delay: number
+}
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, Filler, LinearScale, PointElement, LineElement, Legend, Tooltip)
 
@@ -66,6 +75,23 @@ export const DashboardPage = () => {
   const subjectsQuery = useQuery({
     queryKey: ['faculty-subjects', currentRole],
     queryFn: facultyApi.subjects,
+  })
+
+  const subjectAttendanceQuery = useQuery({
+    queryKey: ['subject-attendance', currentRole],
+    queryFn: () => analyticsApi.subjectAttendance(),
+    enabled: isHod || isAdmin,
+  })
+
+  // Fetch attendance data for admin to calculate real overall attendance
+  const attendanceReportQuery = useQuery({
+    queryKey: ['attendance-report-admin', fromDate, toDate],
+    queryFn: () =>
+      attendanceApi.report({
+        from_date: fromDate,
+        to_date: toDate,
+      }),
+    enabled: isAdmin,
   })
 
   const subjects = subjectsQuery.data?.items ?? []
@@ -111,21 +137,8 @@ export const DashboardPage = () => {
     enabled: isAdmin || isHod,
   })
 
-  const lowAttendanceQuery = useQuery({
-    queryKey: ['low-attendance-alerts', currentRole, fromDate, toDate, selectedSubjectId],
-    queryFn: () =>
-      attendanceApi.lowAttendanceAlerts({
-        from_date: fromDate,
-        to_date: toDate,
-        threshold_percent: 75,
-        min_sessions: 3,
-        subject_id: isFaculty ? selectedSubjectId || undefined : undefined,
-      }),
-  })
-
   const analytics = analyticsQuery.data
   const departments = departmentsQuery.data?.items ?? []
-  const lowAttendanceAlerts = lowAttendanceQuery.data?.items ?? []
 
   const adminSummary = useMemo(() => {
     const totals = departments.reduce(
@@ -157,6 +170,16 @@ export const DashboardPage = () => {
 
   const statCards = useMemo<DashboardStat[]>(() => {
     if (isAdmin) {
+      // Calculate real average attendance from actual attendance records
+      const attendanceItems = attendanceReportQuery.data?.items ?? []
+      let realAvgAttendance = 0
+      
+      if (attendanceItems.length > 0) {
+        const presentCount = attendanceItems.filter((item) => item.status === 'present' || item.status === 'late').length
+        const totalCount = attendanceItems.length
+        realAvgAttendance = totalCount > 0 ? (presentCount / totalCount) * 100 : 0
+      }
+
       return [
         {
           title: 'Total Departments',
@@ -181,22 +204,21 @@ export const DashboardPage = () => {
         },
         {
           title: 'Avg Dept Attendance',
-          value: `${adminSummary.averageAttendance.toFixed(1)}%`,
-          subtitle: 'Average of department performance',
+          value: `${realAvgAttendance.toFixed(1)}%`,
+          subtitle: 'Average attendance across all departments',
           icon: Activity,
           delay: 0.15,
-        },
-        {
-          title: 'Low Attendance (<75%)',
-          value: String(lowAttendanceAlerts.length),
-          subtitle: 'Students below threshold this period',
-          icon: AlertTriangle,
-          delay: 0.2,
         },
       ]
     }
 
     if (isHod) {
+      // Calculate average attendance from all subjects
+      const subjectAttendanceItems = subjectAttendanceQuery.data?.items ?? []
+      const avgDeptAttendance = subjectAttendanceItems.length > 0
+        ? subjectAttendanceItems.reduce((sum: number, item: any) => sum + item.attendance_percent, 0) / subjectAttendanceItems.length
+        : hodDepartment?.attendance_percent ?? 0
+
       return [
         {
           title: 'Department Students',
@@ -221,17 +243,10 @@ export const DashboardPage = () => {
         },
         {
           title: 'Department Attendance',
-          value: `${(hodDepartment?.attendance_percent ?? 0).toFixed(1)}%`,
-          subtitle: 'Attendance health of your department',
+          value: `${avgDeptAttendance.toFixed(1)}%`,
+          subtitle: 'Average attendance across all subjects',
           icon: Activity,
           delay: 0.15,
-        },
-        {
-          title: 'Low Attendance (<75%)',
-          value: String(lowAttendanceAlerts.length),
-          subtitle: 'Students below threshold this period',
-          icon: AlertTriangle,
-          delay: 0.2,
         },
       ]
     }
@@ -239,41 +254,36 @@ export const DashboardPage = () => {
     return [
       {
         title: 'Selected Subject Students',
-        value: String(analytics?.total_students ?? 0),
+        value: analytics?.total_students ? String(analytics.total_students) : '—',
         subtitle: selectedSubject ? `${selectedSubject.code} · Sem ${selectedSubject.semester} · Sec ${selectedSubject.section}` : 'Select a subject to scope data',
         icon: Users,
         delay: 0,
       },
       {
         title: 'Faculty Coverage',
-        value: String(analytics?.total_faculty ?? 0),
+        value: analytics?.total_faculty ? String(analytics.total_faculty) : '—',
         subtitle: 'Faculty assigned to selected subject',
         icon: GraduationCap,
         delay: 0.05,
       },
       {
-        title: 'Subject Scope',
-        value: String(analytics?.total_subjects ?? 0),
-        subtitle: 'Dashboard currently scoped to one subject',
-        icon: Layers3,
+        title: "Today's Attendance",
+        value: `${(analytics?.today_attendance_percent ?? 0).toFixed(1)}%`,
+        subtitle: analytics?.today_attendance_percent ? 'Students present today' : 'No attendance records yet',
+        icon: Activity,
         delay: 0.1,
       },
       {
-        title: "Today's Attendance",
-        value: `${(analytics?.today_attendance_percent ?? 0).toFixed(1)}%`,
-        subtitle: `Average ${(analytics?.average_attendance_percent ?? 0).toFixed(1)}%`,
-        icon: Activity,
+        title: 'Period Average',
+        value: `${(analytics?.average_attendance_percent ?? 0).toFixed(1)}%`,
+        subtitle: analytics?.average_attendance_percent ? 'Average for selected period' : 'No attendance data available',
+        icon: Layers3,
         delay: 0.15,
       },
-      {
-        title: 'Low Attendance (<75%)',
-        value: String(lowAttendanceAlerts.length),
-        subtitle: 'Students below threshold this period',
-        icon: AlertTriangle,
-        delay: 0.2,
-      },
     ]
-  }, [adminSummary, analytics, hodDepartment, isAdmin, isFaculty, isHod, lowAttendanceAlerts.length, selectedSubject, subjects.length])
+  }, [adminSummary, analytics, attendanceReportQuery.data?.items, departments, hodDepartment, isAdmin, isFaculty, isHod, selectedSubject, subjects.length, subjectAttendanceQuery.data?.items])
+
+  const isDataLoading = isFaculty && analyticsQuery.isLoading
 
   const roleTitle: Record<AppRole, string> = {
     faculty: 'Faculty Dashboard',
@@ -301,40 +311,6 @@ export const DashboardPage = () => {
     }
     return subjects.filter((subject) => subject.id === selectedSubjectId)
   }, [isFaculty, selectedSubjectId, subjects])
-
-  const attendanceMixData = useMemo(() => {
-    const today = analytics?.today_attendance_percent ?? 0
-    return {
-      labels: ['Present Today', 'Remaining'],
-      datasets: [
-        {
-          data: [today, Math.max(0, 100 - today)],
-          backgroundColor: ['#0f766e', '#d1d5db'],
-          borderWidth: 0,
-        },
-      ],
-    }
-  }, [analytics])
-
-  const trendData = useMemo(() => {
-    const avg = analytics?.average_attendance_percent ?? 0
-    const today = analytics?.today_attendance_percent ?? 0
-    const base = Math.max(40, avg - 6)
-
-    return {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Today'],
-      datasets: [
-        {
-          label: 'Attendance %',
-          data: [base + 1, base + 3, base + 2, avg, today],
-          borderColor: '#0f172a',
-          backgroundColor: 'rgba(15, 23, 42, 0.07)',
-          fill: true,
-          tension: 0.35,
-        },
-      ],
-    }
-  }, [analytics])
 
   const handleDownload = async (kind: 'csv' | 'xlsx' | 'pdf') => {
     setIsDownloading(true)
@@ -397,7 +373,7 @@ export const DashboardPage = () => {
     if (departmentsQuery.isLoading) {
       return (
         <tr>
-          <td colSpan={7} className="py-5 text-slate-500">Loading department summary...</td>
+          <td colSpan={6} className="py-5 text-slate-500">Loading department summary...</td>
         </tr>
       )
     }
@@ -405,7 +381,7 @@ export const DashboardPage = () => {
     if (departments.length === 0) {
       return (
         <tr>
-          <td colSpan={7} className="py-5 text-slate-500">No department summary available.</td>
+          <td colSpan={6} className="py-5 text-slate-500">No department summary available.</td>
         </tr>
       )
     }
@@ -420,7 +396,6 @@ export const DashboardPage = () => {
         <td className="py-3 text-slate-700">{department.total_faculty}</td>
         <td className="py-3 text-slate-700">{department.total_students}</td>
         <td className="py-3 text-slate-700">{department.total_subjects}</td>
-        <td className="py-3 text-slate-700">{department.attendance_percent.toFixed(1)}%</td>
         <td className="py-3 text-slate-700">{department.hod_email ?? 'N/A'}</td>
       </tr>
     ))
@@ -457,8 +432,8 @@ export const DashboardPage = () => {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {statCards.map((item) => (
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((item: StatCardData) => (
           <StatCard
             key={item.title}
             title={item.title}
@@ -466,6 +441,7 @@ export const DashboardPage = () => {
             subtitle={item.subtitle}
             icon={item.icon}
             delay={item.delay}
+            isLoading={isDataLoading}
           />
         ))}
       </div>
@@ -494,7 +470,6 @@ export const DashboardPage = () => {
                   <th className="py-3">Faculty</th>
                   <th className="py-3">Students</th>
                   <th className="py-3">Subjects</th>
-                  <th className="py-3">Attendance</th>
                   <th className="py-3">HOD Email</th>
                 </tr>
               </thead>
@@ -504,62 +479,52 @@ export const DashboardPage = () => {
         </motion.article>
       )}
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+      {isHod && (
         <motion.article
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-panel rounded-3xl p-6 shadow-soft"
+          className="mt-6 glass-panel rounded-3xl p-6 shadow-soft"
         >
-          <h3 className="font-display text-xl font-semibold text-brand-900">Attendance Trend</h3>
-          <p className="mt-1 text-sm text-slate-500">Rolling week trend generated from current overview signals.</p>
-          <div className="mt-4 h-[320px]">
-            <Line
-              data={trendData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { display: false },
-                },
-                scales: {
-                  y: {
-                    min: 0,
-                    max: 100,
-                    grid: { color: 'rgba(148, 163, 184, 0.16)' },
-                    ticks: { callback: (value) => `${value}%` },
-                  },
-                },
-              }}
-            />
+          <h3 className="font-display text-xl font-semibold text-brand-900">Subject Attendance Overview</h3>
+          <p className="mt-1 text-sm text-slate-500">Average attendance percentage for each subject</p>
+          
+          <div className="mt-6 space-y-3">
+            {subjectAttendanceQuery.isLoading ? (
+              <p className="text-sm text-slate-500">Loading attendance data...</p>
+            ) : subjectAttendanceQuery.data?.items && subjectAttendanceQuery.data.items.length > 0 ? (
+              subjectAttendanceQuery.data.items.map((item: { attendance_percent: number; subject_id: string; subject_code: string; subject_name: string }) => {
+                const percent = item.attendance_percent
+                const color = percent > 85 ? 'bg-emerald-500' : percent >= 75 ? 'bg-amber-500' : 'bg-rose-500'
+                const textColor = percent > 85 ? 'text-emerald-700' : percent >= 75 ? 'text-amber-700' : 'text-rose-700'
+                const bgColor = percent > 85 ? 'bg-emerald-50' : percent >= 75 ? 'bg-amber-50' : 'bg-rose-50'
+
+                return (
+                  <div key={item.subject_id} className={`${bgColor} rounded-lg p-3`}>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div>
+                        <p className="font-semibold text-slate-800">{item.subject_code}</p>
+                        <p className="text-xs text-slate-600">{item.subject_name}</p>
+                      </div>
+                      <span className={`${textColor} font-bold text-lg`}>{percent.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className={`${color} h-2 rounded-full`} style={{ width: `${Math.min(percent, 100)}%` }} />
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <p className="text-sm text-slate-500">No attendance data available</p>
+            )}
           </div>
         </motion.article>
+      )}
 
+      {isFaculty && (
         <motion.article
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="glass-panel rounded-3xl p-6 shadow-soft"
-        >
-          <h3 className="font-display text-xl font-semibold text-brand-900">Today's Presence Mix</h3>
-          <p className="mt-1 text-sm text-slate-500">Real-time attendance ratio for active classes.</p>
-          <div className="mx-auto mt-6 h-[250px] max-w-[300px]">
-            <Doughnut
-              data={attendanceMixData}
-              options={{
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '72%',
-                maintainAspectRatio: false,
-              }}
-            />
-          </div>
-        </motion.article>
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.25fr_1fr]">
-        <motion.article
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-panel rounded-3xl p-6 shadow-soft"
+          className="mt-6 glass-panel rounded-3xl p-6 shadow-soft"
         >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -578,119 +543,69 @@ export const DashboardPage = () => {
 
           {renderSubjectCards()}
         </motion.article>
+      )}
 
-        <div className="space-y-6">
-          <motion.article
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="glass-panel rounded-3xl p-6 shadow-soft"
-          >
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-              <h3 className="font-display text-xl font-semibold text-brand-900">Low Attendance Alerts</h3>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">Students below 75% attendance in the selected date range.</p>
-
-            {(() => {
-              if (lowAttendanceQuery.isLoading) {
-                return <p className="mt-4 text-sm text-slate-500">Checking alert list...</p>
-              }
-
-              if (lowAttendanceAlerts.length === 0) {
-                return (
-                  <p className="mt-4 rounded-xl border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-500">
-                    No students are below the alert threshold.
-                  </p>
-                )
-              }
-
-              return (
-                <div className="mt-4 max-h-[260px] space-y-2 overflow-auto pr-1">
-                  {lowAttendanceAlerts.slice(0, 12).map((alert) => (
-                    <div key={`${alert.student_id}-${alert.subject_id}`} className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-800">{alert.full_name}</p>
-                          <p className="text-xs text-slate-500">{alert.roll_number} · {alert.subject_name}</p>
-                        </div>
-                        <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
-                          {alert.attendance_percent.toFixed(1)}%
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Sem {alert.semester} · Sec {alert.section} · {alert.present_sessions}/{alert.total_sessions} sessions
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )
-            })()}
-          </motion.article>
-
-          <motion.article
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.07 }}
-            className="glass-panel rounded-3xl p-6 shadow-soft"
-          >
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-brand-700" />
-              <h3 className="font-display text-xl font-semibold text-brand-900">Export Reports</h3>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">Download attendance data in CSV, Excel, or PDF format.</p>
-
-            <div className="mt-4 space-y-3 text-sm">
-              <label className="block">
-                <span className="mb-1 block text-slate-500">From</span>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(event) => setFromDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand-600"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-slate-500">To</span>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(event) => setToDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand-600"
-                />
-              </label>
-            </div>
-
-            {downloadError ? (
-              <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{downloadError}</p>
-            ) : null}
-
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <button
-                disabled={isDownloading}
-                onClick={() => handleDownload('csv')}
-                className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-brand-600"
-              >
-                <Download className="h-4 w-4" /> CSV
-              </button>
-              <button
-                disabled={isDownloading}
-                onClick={() => handleDownload('xlsx')}
-                className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-brand-600"
-              >
-                <Download className="h-4 w-4" /> Excel
-              </button>
-              <button
-                disabled={isDownloading}
-                onClick={() => handleDownload('pdf')}
-                className="inline-flex items-center justify-center gap-1 rounded-xl bg-brand-900 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-800"
-              >
-                <Download className="h-4 w-4" /> PDF
-              </button>
-            </div>
-          </motion.article>
+      <motion.article
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="mt-6 glass-panel rounded-3xl p-6 shadow-soft"
+      >
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5 text-brand-700" />
+          <h3 className="font-display text-xl font-semibold text-brand-900">Export Reports</h3>
         </div>
-      </div>
+        <p className="mt-1 text-sm text-slate-500">Download attendance data in CSV, Excel, or PDF format.</p>
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-600 font-semibold">From</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(event) => setFromDate(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand-600"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-600 font-semibold">To</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand-600"
+            />
+          </label>
+        </div>
+
+        {downloadError ? (
+          <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{downloadError}</p>
+        ) : null}
+
+        <div className="mt-6 grid gap-2 sm:grid-cols-3">
+          <button
+            disabled={isDownloading}
+            onClick={() => handleDownload('csv')}
+            className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-brand-600"
+          >
+            <Download className="h-4 w-4" /> CSV
+          </button>
+          <button
+            disabled={isDownloading}
+            onClick={() => handleDownload('xlsx')}
+            className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-brand-600"
+          >
+            <Download className="h-4 w-4" /> Excel
+          </button>
+          <button
+            disabled={isDownloading}
+            onClick={() => handleDownload('pdf')}
+            className="inline-flex items-center justify-center gap-1 rounded-xl bg-brand-900 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-800"
+          >
+            <Download className="h-4 w-4" /> PDF
+          </button>
+        </div>
+      </motion.article>
     </section>
   )
 }

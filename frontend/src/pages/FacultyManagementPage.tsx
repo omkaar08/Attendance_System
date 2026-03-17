@@ -25,7 +25,6 @@ export const FacultyManagementPage = () => {
   const [subjectSemester, setSubjectSemester] = useState(1)
   const [subjectSection, setSubjectSection] = useState('A')
   const [subjectFacultyId, setSubjectFacultyId] = useState('')
-  const [attendanceGraceMinutes, setAttendanceGraceMinutes] = useState(15)
 
   const [subjectId, setSubjectId] = useState('')
   const [facultyId, setFacultyId] = useState('')
@@ -96,35 +95,6 @@ export const FacultyManagementPage = () => {
     [facultyItems.length, subjectItems.length],
   )
 
-  const renderFacultyRows = () => {
-    if (facultyQuery.isLoading) {
-      return (
-        <tr>
-          <td colSpan={4} className="py-5 text-slate-500">Loading faculty list...</td>
-        </tr>
-      )
-    }
-
-    if (facultyItems.length === 0) {
-      return (
-        <tr>
-          <td colSpan={4} className="py-5 text-slate-500">No faculty found for this scope.</td>
-        </tr>
-      )
-    }
-
-    return facultyItems.map((faculty) => (
-      <tr key={faculty.faculty_id} className="border-b border-slate-100">
-        <td className="py-3">
-          <p className="font-semibold text-brand-900">{faculty.full_name}</p>
-          <p className="text-xs text-slate-500">{faculty.email}</p>
-        </td>
-        <td className="py-3 text-slate-700">{faculty.employee_code}</td>
-        <td className="py-3 text-slate-700">{faculty.designation}</td>
-        <td className="py-3 text-slate-700">{faculty.assigned_subject_count}</td>
-      </tr>
-    ))
-  }
 
   const handleCreateFaculty = async (event: { preventDefault(): void }) => {
     event.preventDefault()
@@ -173,7 +143,6 @@ export const FacultyManagementPage = () => {
         semester: subjectSemester,
         section: subjectSection.trim().toUpperCase(),
         faculty_id: subjectFacultyId,
-        attendance_grace_minutes: attendanceGraceMinutes,
       })
 
       await Promise.all([subjectsQuery.refetch(), facultyQuery.refetch()])
@@ -182,7 +151,6 @@ export const FacultyManagementPage = () => {
       setSubjectName('')
       setSubjectSemester(1)
       setSubjectSection('A')
-      setAttendanceGraceMinutes(15)
     } catch (submitError) {
       setError(getErrorMessage(submitError))
     } finally {
@@ -218,7 +186,7 @@ export const FacultyManagementPage = () => {
         description={roleDescription}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div className={`grid gap-6 ${isHod ? 'xl:grid-cols-[1fr_1fr]' : ''}`}>
         <motion.article
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -332,192 +300,150 @@ export const FacultyManagementPage = () => {
           ) : null}
         </motion.article>
 
+        {isHod && (
         <motion.article
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
           className="glass-panel rounded-3xl p-6 shadow-soft"
         >
-          {isHod ? (
-            <>
-              <div className="flex items-center gap-2">
-                <BookPlus className="h-5 w-5 text-brand-700" />
-                <h3 className="font-display text-xl font-semibold text-brand-900">Create Subject</h3>
-              </div>
-              <p className="mt-1 text-sm text-slate-500">Create new department subject and set initial faculty owner.</p>
+          <>
+            <div className="flex items-center gap-2">
+              <BookPlus className="h-5 w-5 text-brand-700" />
+              <h3 className="font-display text-xl font-semibold text-brand-900">Create Subject</h3>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">Create new department subject and set initial faculty owner.</p>
 
-              <form className="mt-4 space-y-3" onSubmit={handleCreateSubject}>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Subject Code</span>
-                    <input
-                      value={subjectCode}
-                      onChange={(event) => setSubjectCode(event.target.value.toUpperCase())}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
-                      required
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Section</span>
-                    <input
-                      value={subjectSection}
-                      onChange={(event) => setSubjectSection(event.target.value.toUpperCase())}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
-                      required
-                    />
-                  </label>
-                </div>
-
+            <form className="mt-4 space-y-3" onSubmit={handleCreateSubject}>
+              <div className="grid gap-3 md:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Subject Name</span>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Subject Code</span>
                   <input
-                    value={subjectName}
-                    onChange={(event) => setSubjectName(event.target.value)}
+                    value={subjectCode}
+                    onChange={(event) => setSubjectCode(event.target.value.toUpperCase())}
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
                     required
                   />
                 </label>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Semester</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={12}
-                      value={subjectSemester}
-                      onChange={(event) => setSubjectSemester(Number(event.target.value))}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
-                      required
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Grace Minutes</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={240}
-                      value={attendanceGraceMinutes}
-                      onChange={(event) => setAttendanceGraceMinutes(Number(event.target.value))}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
-                    />
-                  </label>
-                </div>
-
                 <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Faculty Owner</span>
-                  <select
-                    value={subjectFacultyId}
-                    onChange={(event) => setSubjectFacultyId(event.target.value)}
+                  <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Section</span>
+                  <input
+                    value={subjectSection}
+                    onChange={(event) => setSubjectSection(event.target.value.toUpperCase())}
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
                     required
-                  >
-                    <option value="">Select faculty</option>
-                    {facultyItems.map((faculty) => (
-                      <option key={faculty.faculty_id} value={faculty.faculty_id}>
-                        {faculty.full_name} ({faculty.employee_code})
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
-
-                <button
-                  type="submit"
-                  disabled={isCreatingSubject}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-brand-900 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-70"
-                >
-                  {isCreatingSubject ? 'Creating subject...' : 'Create Subject'}
-                </button>
-              </form>
-
-              <div className="my-5 h-px bg-slate-200" />
-
-              <div className="flex items-center gap-2">
-                <Link2 className="h-5 w-5 text-brand-700" />
-                <h3 className="font-display text-xl font-semibold text-brand-900">Assign Subject</h3>
               </div>
-              <p className="mt-1 text-sm text-slate-500">Reassign subject ownership to another faculty in your department.</p>
 
-              <form className="mt-4 space-y-3" onSubmit={handleAssignSubject}>
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Subject</span>
-                  <select
-                    value={subjectId}
-                    onChange={(event) => setSubjectId(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
-                    required
-                  >
-                    <option value="">Select subject</option>
-                    {subjectItems.map((subject) => (
-                      <option key={subject.id} value={subject.id}>
-                        {subject.code} · Sem {subject.semester} · Sec {subject.section}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Subject Name</span>
+                <input
+                  value={subjectName}
+                  onChange={(event) => setSubjectName(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
+                  required
+                />
+              </label>
 
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Faculty</span>
-                  <select
-                    value={facultyId}
-                    onChange={(event) => setFacultyId(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
-                    required
-                  >
-                    <option value="">Select faculty</option>
-                    {facultyItems.map((faculty) => (
-                      <option key={faculty.faculty_id} value={faculty.faculty_id}>
-                        {faculty.full_name} ({faculty.employee_code})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Semester</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={subjectSemester}
+                  onChange={(event) => setSubjectSemester(Number(event.target.value))}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
+                  required
+                />
+              </label>
 
-                <button
-                  type="submit"
-                  disabled={isAssigning}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-brand-900 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-70"
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Faculty Owner</span>
+                <select
+                  value={subjectFacultyId}
+                  onChange={(event) => setSubjectFacultyId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
+                  required
                 >
-                  {isAssigning ? 'Updating assignment...' : 'Assign Subject'}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <h3 className="font-display text-xl font-semibold text-brand-900">Subject Ownership Policy</h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Subject creation and faculty assignment are restricted to HOD. Admin handles departments and HOD setup, and can also provision faculty.
-              </p>
-            </>
-          )}
+                  <option value="">Select faculty</option>
+                  {facultyItems.map((faculty) => (
+                    <option key={faculty.faculty_id} value={faculty.faculty_id}>
+                      {faculty.full_name} ({faculty.employee_code})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isCreatingSubject}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-brand-900 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-70"
+              >
+                {isCreatingSubject ? 'Creating subject...' : 'Create Subject'}
+              </button>
+            </form>
+
+            <div className="my-5 h-px bg-slate-200" />
+
+            <div className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-brand-700" />
+              <h3 className="font-display text-xl font-semibold text-brand-900">Assign Subject</h3>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">Reassign subject ownership to another faculty in your department.</p>
+
+            <form className="mt-4 space-y-3" onSubmit={handleAssignSubject}>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Subject</span>
+                <select
+                  value={subjectId}
+                  onChange={(event) => setSubjectId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
+                  required
+                >
+                  <option value="">Select subject</option>
+                  {subjectItems.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.code} · Sem {subject.semester} · Sec {subject.section}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-500">Faculty</span>
+                <select
+                  value={facultyId}
+                  onChange={(event) => setFacultyId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand-600"
+                  required
+                >
+                  <option value="">Select faculty</option>
+                  {facultyItems.map((faculty) => (
+                    <option key={faculty.faculty_id} value={faculty.faculty_id}>
+                      {faculty.full_name} ({faculty.employee_code})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isAssigning}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-brand-900 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-70"
+              >
+                {isAssigning ? 'Updating assignment...' : 'Assign Subject'}
+              </button>
+            </form>
+          </>
         </motion.article>
+        )}
       </div>
 
       {status ? <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{status}</p> : null}
       {error ? <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
-
-      <div className="mt-6 glass-panel rounded-3xl p-5 shadow-soft">
-        <h3 className="font-display text-lg font-semibold text-brand-900">Faculty Directory</h3>
-        <p className="mt-1 text-sm text-slate-500">Department-scoped list with current subject load.</p>
-
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-[0.16em] text-slate-500">
-                <th className="py-3">Faculty</th>
-                <th className="py-3">Employee Code</th>
-                <th className="py-3">Designation</th>
-                <th className="py-3">Subjects Assigned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {renderFacultyRows()}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </section>
   )
 }

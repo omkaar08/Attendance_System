@@ -236,6 +236,7 @@ export interface FacultyManagementSummary {
   employee_code: string
   designation: string
   department_id: string
+  department_name: string
   assigned_subject_count: number
 }
 

@@ -1,6 +1,17 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import analytics, attendance, auth, faculty, management, recognition, reports, students, subjects
+from app.api.v1.endpoints import (
+    analytics,
+    attendance,
+    auth,
+    extended,
+    faculty,
+    management,
+    recognition,
+    reports,
+    students,
+    subjects,
+)
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -12,3 +23,4 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["analytic
 api_router.include_router(recognition.router, prefix="/recognition", tags=["recognition"])
 api_router.include_router(management.router, prefix="/management", tags=["management"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
+api_router.include_router(extended.router, tags=["extended", "recognition", "batch", "audit"])

@@ -425,9 +425,11 @@ async def list_faculty_members(
             Faculty.employee_code,
             Faculty.designation,
             Faculty.department_id,
+            Department.name.label("department_name"),
             func.count(Subject.id).label("subject_count"),
         )
         .join(User, User.id == Faculty.user_id)
+        .join(Department, Department.id == Faculty.department_id)
         .outerjoin(Subject, Subject.faculty_id == Faculty.id)
         .group_by(
             Faculty.id,
@@ -437,6 +439,7 @@ async def list_faculty_members(
             Faculty.employee_code,
             Faculty.designation,
             Faculty.department_id,
+            Department.name,
         )
         .order_by(User.full_name)
     )
@@ -455,6 +458,7 @@ async def list_faculty_members(
                 employee_code=row.employee_code,
                 designation=row.designation,
                 department_id=row.department_id,
+                department_name=row.department_name,
                 assigned_subject_count=int(row.subject_count or 0),
             )
             for row in rows

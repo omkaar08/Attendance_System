@@ -8,19 +8,19 @@ import httpx
 
 from app.core.config import get_settings
 
-DEPARTMENT_CODE = "ATT-CSE"
-DEPARTMENT_NAME = "Attendra Computer Science"
-FACULTY_SUBJECT_CODE = "ATT-AI-601"
+DEPARTMENT_CODE = "VIS-CSE"
+DEPARTMENT_NAME = "VisionAttend Computer Science"
+FACULTY_SUBJECT_CODE = "VIS-AI-601"
 FACULTY_SUBJECT_NAME = "Applied AI Systems"
-HOD_SUBJECT_CODE = "ATT-OPS-801"
+HOD_SUBJECT_CODE = "VIS-OPS-801"
 HOD_SUBJECT_NAME = "Academic Operations Lab"
 
-ADMIN_EMAIL = "admin@attendrahq.com"
-ADMIN_PASSWORD = "AttendraAdmin!123"
-HOD_EMAIL = "hod@attendrahq.com"
-HOD_PASSWORD = "AttendraHOD!123"
-FACULTY_EMAIL = "faculty@attendrahq.com"
-FACULTY_PASSWORD = "AttendraFaculty!123"
+ADMIN_EMAIL = "admin@visionattend.com"
+ADMIN_PASSWORD = "VisionAttendAdmin!123"
+HOD_EMAIL = "hod@visionattend.com"
+HOD_PASSWORD = "VisionAttendHOD!123"
+FACULTY_EMAIL = "faculty@visionattend.com"
+FACULTY_PASSWORD = "VisionAttendFaculty!123"
 
 
 @dataclass
@@ -294,7 +294,7 @@ async def provision() -> dict[str, Any]:
             auth_admin,
             email=ADMIN_EMAIL,
             password=ADMIN_PASSWORD,
-            full_name="Attendra Admin",
+            full_name=\"VisionAttend Admin\",
             role="admin",
             department_id=None,
         )
@@ -302,7 +302,7 @@ async def provision() -> dict[str, Any]:
         await ensure_public_user(
             conn,
             user_id=admin_user_id,
-            full_name="Attendra Admin",
+            full_name=\"VisionAttend Admin\",
             email=ADMIN_EMAIL,
             role="admin",
             department_id=None,
@@ -378,7 +378,7 @@ async def provision() -> dict[str, Any]:
         )
 
         return {
-            "system_name": "Attendra Studio",
+            "system_name": "VisionAttend Platform",
             "department": {
                 "id": department_id,
                 "code": DEPARTMENT_CODE,
