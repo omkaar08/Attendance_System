@@ -17,9 +17,7 @@ import { motion } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
-  AlertCircle,
   Building2,
-  Calendar,
   CalendarDays,
   Download,
   GraduationCap,
