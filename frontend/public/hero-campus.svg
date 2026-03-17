@@ -1,0 +1,33 @@
+<svg width="1200" height="520" viewBox="0 0 1200 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1200" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e0f2fe" />
+      <stop offset="1" stop-color="#fff7ed" />
+    </linearGradient>
+    <linearGradient id="building" x1="260" y1="120" x2="920" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f172a" />
+      <stop offset="1" stop-color="#1d6f93" />
+    </linearGradient>
+    <linearGradient id="accent" x1="230" y1="420" x2="960" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10b981" />
+      <stop offset="1" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="520" rx="28" fill="url(#sky)" />
+  <circle cx="1040" cy="88" r="46" fill="#f59e0b" fill-opacity="0.22" />
+  <circle cx="160" cy="90" r="34" fill="#22c55e" fill-opacity="0.15" />
+
+  <rect x="230" y="150" width="730" height="270" rx="30" fill="url(#building)" />
+  <rect x="300" y="210" width="80" height="130" rx="12" fill="#f8fafc" fill-opacity="0.9" />
+  <rect x="420" y="210" width="80" height="130" rx="12" fill="#f8fafc" fill-opacity="0.9" />
+  <rect x="540" y="210" width="80" height="130" rx="12" fill="#f8fafc" fill-opacity="0.9" />
+  <rect x="660" y="210" width="80" height="130" rx="12" fill="#f8fafc" fill-opacity="0.9" />
+  <rect x="780" y="210" width="80" height="130" rx="12" fill="#f8fafc" fill-opacity="0.9" />
+
+  <rect x="570" y="268" width="90" height="152" rx="18" fill="#f59e0b" fill-opacity="0.85" />
+  <path d="M600 90L730 150H470L600 90Z" fill="#0b1628" />
+  <path d="M180 420C250 360 370 340 470 376C540 402 620 406 720 376C820 346 960 370 1020 420" stroke="url(#accent)" stroke-width="16" stroke-linecap="round" />
+
+  <circle cx="210" cy="430" r="14" fill="#1d6f93" />
+  <circle cx="990" cy="430" r="14" fill="#1d6f93" />
+</svg>

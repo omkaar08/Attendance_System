@@ -1,0 +1,25 @@
+Metadata-Version: 2.4
+Name: mmattend-backend
+Version: 0.1.0
+Summary: Production FastAPI backend for the AI attendance platform
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.115.8
+Requires-Dist: uvicorn[standard]>=0.34.0
+Requires-Dist: sqlalchemy[asyncio]>=2.0.38
+Requires-Dist: asyncpg>=0.30.0
+Requires-Dist: pydantic[email]>=2.10.6
+Requires-Dist: pydantic-settings>=2.7.1
+Requires-Dist: supabase>=2.13.0
+Requires-Dist: httpx>=0.28.1
+Requires-Dist: PyJWT[crypto]>=2.10.1
+Requires-Dist: pgvector>=0.3.6
+Requires-Dist: insightface>=0.7.3
+Requires-Dist: onnxruntime>=1.17.0
+Requires-Dist: opencv-python-headless>=4.9.0
+Requires-Dist: numpy>=1.26.0
+Requires-Dist: slowapi>=0.1.9
+Requires-Dist: Pillow>=10.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.4; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.25.3; extra == "dev"
+Requires-Dist: ruff>=0.9.7; extra == "dev"

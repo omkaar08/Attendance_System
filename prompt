@@ -1,0 +1,450 @@
+Production AI Attendance System Prompt
+
+You are a senior AI architect and full-stack engineer.
+
+Design and generate a production-ready AI Face Recognition Attendance Management System for educational institutions.
+
+The system must support multiple departments, faculty members, subjects, and students, with role-based access control and analytics dashboards.
+
+The system must be scalable, secure, and modular.
+
+Tech Stack
+
+Frontend
+
+React (Vite)
+
+TypeScript
+
+TailwindCSS
+
+shadcn UI
+
+React Query
+
+Zustand state management
+
+Recharts / Chart.js for analytics
+
+face-api.js for browser face detection
+
+Backend
+
+FastAPI (Python)
+
+OpenCV
+
+face_recognition or FaceNet embeddings
+
+NumPy
+
+Uvicorn
+
+Database
+
+Supabase (PostgreSQL)
+
+Storage
+
+Supabase Storage (student images)
+
+Authentication
+
+Supabase Auth (JWT)
+
+Deployment
+
+Docker
+
+Vercel (frontend)
+
+Railway / Render (backend)
+
+Realtime
+
+Supabase Realtime subscriptions
+
+System Overview
+
+The system is a multi-department attendance platform using AI face recognition.
+
+Each faculty logs into the system and can mark attendance for the subjects assigned to them.
+
+Each department has an HOD, who is also a faculty member but has additional administrative permissions.
+
+Students are registered with face images and embeddings, and attendance is automatically marked when faces are detected.
+
+User Roles
+
+The system must support Role-Based Access Control.
+
+Roles:
+
+Admin
+HOD
+Faculty
+Admin
+
+Permissions:
+
+Create departments
+
+Assign HOD
+
+Add faculty
+
+Manage system settings
+
+View global analytics
+
+HOD
+
+The HOD is also a faculty member.
+
+Permissions:
+
+Manage faculty in department
+
+Assign subjects to faculty
+
+View attendance for entire department
+
+Access analytics dashboard
+
+Download department reports
+
+Faculty
+
+Permissions:
+
+View assigned subjects
+
+Register students
+
+Capture student faces
+
+Mark attendance using face recognition
+
+Download subject attendance reports
+
+Core System Features
+Student Management
+
+Faculty should be able to:
+
+Register new student
+
+Upload student face images
+
+Capture images using camera
+
+Update student details
+
+Assign student to class/semester
+
+Each student must have:
+
+id
+name
+roll_number
+department
+semester
+class
+face_embedding
+image_url
+created_at
+Subject Management
+
+Each subject belongs to a department and is assigned to a faculty.
+
+Example:
+
+Machine Learning → Dr. Sharma
+Operating Systems → Prof. Kumar
+
+Faculty can only mark attendance for subjects assigned to them.
+
+Face Recognition Pipeline
+
+Student Registration:
+
+Capture Face Images
+↓
+Detect Face
+↓
+Generate Face Embedding
+↓
+Store Embedding in Database
+↓
+Store Images in Supabase Storage
+
+Attendance Recognition:
+
+Camera Feed
+↓
+Face Detection
+↓
+Embedding Generation
+↓
+Compare With Stored Embeddings
+↓
+Match Student
+↓
+Mark Attendance
+
+Use cosine similarity or Euclidean distance.
+
+Include configurable confidence threshold.
+
+Attendance System
+
+Faculty selects:
+
+Subject
+Class
+Session
+Date
+
+Camera opens.
+
+System detects faces and marks attendance automatically.
+
+Attendance record includes:
+
+student_id
+subject_id
+faculty_id
+date
+time
+status
+confidence_score
+
+The system must prevent duplicate attendance.
+
+Constraint:
+
+UNIQUE(student_id, subject_id, date)
+Database Schema (Supabase)
+Users
+id
+name
+email
+role
+department_id
+created_at
+Departments
+id
+name
+hod_id
+created_at
+Faculty
+id
+user_id
+department_id
+designation
+created_at
+Subjects
+id
+name
+department_id
+semester
+faculty_id
+created_at
+Students
+id
+name
+roll_number
+department_id
+semester
+class
+image_url
+face_embedding
+created_at
+Attendance
+id
+student_id
+subject_id
+faculty_id
+date
+time
+status
+confidence_score
+created_at
+Real-Time Attendance
+
+Use Supabase Realtime so when attendance is marked:
+
+dashboard updates instantly
+
+Faculty and HOD dashboards must show live attendance updates.
+
+Analytics Dashboard
+
+The dashboard must include:
+
+Overview Metrics
+Total Students
+Total Faculty
+Total Subjects
+Today's Attendance %
+Average Attendance %
+Attendance Trend
+
+Line chart showing:
+
+attendance over time
+Subject-wise Attendance
+
+Bar chart showing:
+
+attendance percentage per subject
+Faculty Performance
+
+Chart showing:
+
+classes conducted per faculty
+attendance rates per subject
+Low Attendance Students
+
+List students with:
+
+attendance < 75%
+
+Send alerts for low attendance.
+
+Reports
+
+Faculty and HOD must be able to download reports:
+
+CSV
+Excel
+PDF
+
+Report types:
+
+Daily Attendance
+Monthly Attendance
+Subject Attendance
+Student Attendance Summary
+Department Attendance
+Frontend Pages
+
+Create these pages:
+
+/login
+/dashboard
+/students
+/register-student
+/subjects
+/mark-attendance
+/attendance-report
+/analytics
+/settings
+UI Requirements
+
+Use modern UI:
+
+TailwindCSS
+
+Responsive design
+
+Dark mode
+
+Camera overlay UI
+
+Real-time face recognition labels
+
+Face Recognition Optimization
+
+Implement:
+
+Face alignment
+
+Multiple embeddings per student
+
+Confidence threshold tuning
+
+False positive prevention
+
+Security
+
+Implement:
+
+Supabase Row Level Security
+
+Secure API access
+
+Image access control
+
+JWT authentication
+
+Role-based permissions
+
+Performance Optimization
+
+Include:
+
+WebWorkers for face detection
+
+Image compression
+
+Embedding caching
+
+Lazy loading
+
+Folder Structure
+attendance-system/
+│
+├── frontend/
+│   ├── components
+│   ├── pages
+│   ├── hooks
+│   ├── services
+│
+├── backend/
+│   ├── api
+│   ├── models
+│   ├── face_recognition
+│
+├── database/
+│   ├── schema.sql
+│
+├── docker/
+│
+└── docs/
+Backend API Endpoints
+
+Generate APIs:
+
+POST /register-student
+POST /upload-face
+POST /generate-embedding
+POST /recognize-face
+POST /mark-attendance
+
+GET /students
+GET /subjects
+GET /attendance
+GET /analytics
+
+Optional Advanced AI Features
+
+Add support for:
+
+anti-spoof detection
+liveness detection
+multi-face recognition
+confidence score
+Final Goal
+
+Build a production-grade AI Face Recognition Attendance Platform where:
+
+Faculty opens camera
+↓
+Students detected
+↓
+Faces matched with database
+↓
+Attendance automatically recorded
+↓
+Dashboard updates in real time

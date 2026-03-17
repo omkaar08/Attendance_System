@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #1f2937;
+    background: #f3f7fb;
+    font-family: 'Manrope', sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    @apply border-slate-200;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-surface text-slate-700;
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(31, 111, 148, 0.16), transparent 32%),
+      radial-gradient(circle at 90% 18%, rgba(249, 115, 22, 0.12), transparent 30%),
+      radial-gradient(circle at 50% 100%, rgba(14, 116, 144, 0.08), transparent 38%);
+    background-attachment: fixed;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.7));
+    backdrop-filter: blur(14px);
+  }
+
+  .aurora {
+    position: absolute;
+    z-index: 0;
+    width: 40rem;
+    height: 40rem;
+    border-radius: 9999px;
+    filter: blur(56px);
+    opacity: 0.45;
+    animation: floaty 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .aurora-top {
+    top: -16rem;
+    right: -10rem;
+    background: radial-gradient(circle, rgba(2, 132, 199, 0.34), rgba(56, 189, 248, 0.06));
+  }
+
+  .aurora-bottom {
+    bottom: -18rem;
+    left: -12rem;
+    animation-delay: 1.7s;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.27), rgba(251, 191, 36, 0.05));
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) scale(1.02);
+  }
+}
