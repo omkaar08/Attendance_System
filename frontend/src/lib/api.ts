@@ -60,6 +60,10 @@ api.interceptors.request.use((config) => {
 
 export const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
+    if (error.code === 'ECONNABORTED') {
+      return 'Recognition request timed out. Keep camera steady, ensure good lighting, and try again.'
+    }
+
     const body = (error as AxiosError<ErrorEnvelope>).response?.data
     if (body?.error?.message) {
       return body.error.message
@@ -145,14 +149,14 @@ export const studentsApi = {
 export const recognitionApi = {
   enroll: async (payload: EnrollRequest): Promise<EnrollResponse> => {
     const { data } = await api.post<EnrollResponse>('/recognition/enroll', payload, {
-      timeout: 45_000,
+      timeout: 90_000,
     })
     return data
   },
 
   identify: async (payload: IdentifyRequest): Promise<IdentifyResponse> => {
     const { data } = await api.post<IdentifyResponse>('/recognition/identify', payload, {
-      timeout: 45_000,
+      timeout: 90_000,
     })
     return data
   },

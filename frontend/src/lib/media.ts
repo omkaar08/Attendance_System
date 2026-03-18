@@ -138,16 +138,22 @@ export const captureVideoFrame = async (video: HTMLVideoElement): Promise<Blob> 
     throw new Error('Camera frame is not ready yet.')
   }
 
+  // Keep live-scan payloads small for slower mobile networks and free-tier backends.
+  const maxDimension = 960
+  const scale = Math.min(1, maxDimension / Math.max(video.videoWidth, video.videoHeight))
+  const targetWidth = Math.max(1, Math.round(video.videoWidth * scale))
+  const targetHeight = Math.max(1, Math.round(video.videoHeight * scale))
+
   const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
+  canvas.width = targetWidth
+  canvas.height = targetHeight
 
   const ctx = canvas.getContext('2d')
   if (!ctx) {
     throw new Error('Could not capture frame from camera.')
   }
 
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  ctx.drawImage(video, 0, 0, targetWidth, targetHeight)
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -159,7 +165,7 @@ export const captureVideoFrame = async (video: HTMLVideoElement): Promise<Blob> 
         resolve(blob)
       },
       'image/jpeg',
-      0.9,
+      0.75,
     )
   })
 }
