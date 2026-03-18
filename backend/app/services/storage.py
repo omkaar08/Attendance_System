@@ -55,6 +55,32 @@ def _create_signed_upload_url_via_http(*, bucket: str, storage_path: str, settin
         return response.json()
 
 
+def _ensure_bucket_exists(*, bucket: str) -> None:
+    """Best-effort bucket bootstrap for production drift scenarios."""
+    client = get_service_supabase_client()
+    try:
+        existing = {
+            item["name"] if isinstance(item, dict) else getattr(item, "name", "")
+            for item in client.storage.list_buckets()
+        }
+        if bucket in existing:
+            return
+
+        mime_types = ["image/jpeg", "image/png", "image/webp"]
+        file_size_limit = 8 * 1024 * 1024 if "face" in bucket else 5 * 1024 * 1024
+        client.storage.create_bucket(
+            bucket,
+            options={
+                "public": False,
+                "allowed_mime_types": mime_types,
+                "file_size_limit": file_size_limit,
+            },
+        )
+    except Exception:
+        # Signing may still succeed even if listing/creation fails for transient reasons.
+        return
+
+
 async def create_face_upload_url(
     *,
     session: AsyncSession,
@@ -94,14 +120,40 @@ async def create_face_upload_url(
         except Exception as exc:  # noqa: BLE001
             client_error = exc
 
+    # Bucket might not exist in newly provisioned environments; create it and retry once.
+    if result is None:
+        _ensure_bucket_exists(bucket=bucket)
+        try:
+            result = get_service_supabase_client().storage.from_(bucket).create_signed_upload_url(storage_path)
+            client_error = None
+        except Exception as exc:  # noqa: BLE001
+            client_error = exc
+
     if result is None:
         try:
             result = _create_signed_upload_url_via_http(bucket=bucket, storage_path=storage_path, settings=settings)
+        except httpx.HTTPStatusError as exc:
+            body = exc.response.text if exc.response is not None else ""
+            raise ApplicationError(
+                status_code=502,
+                code="storage_sign_failed",
+                message="Could not create signed upload URL.",
+                details={
+                    "bucket": bucket,
+                    "upstream_status": exc.response.status_code if exc.response is not None else None,
+                    "upstream_body": body[:400],
+                    "hint": "Check SUPABASE_SERVICE_ROLE_KEY and bucket configuration.",
+                },
+            ) from (client_error or exc)
         except Exception as exc:
             raise ApplicationError(
                 status_code=502,
                 code="storage_sign_failed",
                 message="Could not create signed upload URL.",
+                details={
+                    "bucket": bucket,
+                    "hint": "Check SUPABASE_SERVICE_ROLE_KEY and bucket configuration.",
+                },
             ) from (client_error or exc)
 
     raw_signed_upload_url = None
