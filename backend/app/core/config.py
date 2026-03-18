@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     face_min_quality_score: float = Field(default=0.30, ge=0.0, le=1.0)
     face_max_embeddings_per_student: int = Field(default=10, ge=1, le=50)
     face_model_warmup: bool = False  # set True in production to pre-load model on startup
+    enable_extended_api: bool = False
 
     @field_validator("backend_cors_origins", mode="before")
     @classmethod

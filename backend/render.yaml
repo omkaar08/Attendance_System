@@ -4,10 +4,12 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w ${WEB_CONCURRENCY:-2} -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT app.main:app
+    startCommand: gunicorn -w ${WEB_CONCURRENCY:-1} -k uvicorn.workers.UvicornWorker --max-requests 200 --max-requests-jitter 50 -b 0.0.0.0:$PORT app.main:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
+      - key: WEB_CONCURRENCY
+        value: "1"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
@@ -20,3 +22,7 @@ services:
         value: '["https://yourdomain.vercel.app"]'
       - key: FACE_RECOGNITION_THRESHOLD
         value: "0.50"
+      - key: FACE_MODEL_WARMUP
+        value: "false"
+      - key: ENABLE_EXTENDED_API
+        value: "false"
