@@ -9,7 +9,7 @@ from app.schemas.common import StudentSummary
 
 class StudentRegisterRequest(BaseModel):
     full_name: str = Field(min_length=2, max_length=255)
-    roll_number: str = Field(min_length=2, max_length=50)
+    roll_number: str = Field(min_length=1, max_length=50)
     department_id: UUID
     semester: int = Field(ge=1, le=12)
     section: str = Field(min_length=1, max_length=20)

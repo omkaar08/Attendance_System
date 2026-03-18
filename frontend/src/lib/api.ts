@@ -31,7 +31,11 @@ import type {
   SubjectListResponse,
 } from './types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/v1'
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim()
+const isLocalHost =
+  globalThis.location !== undefined &&
+  ['localhost', '127.0.0.1'].includes(globalThis.location.hostname)
+const API_BASE_URL = configuredApiBase || (isLocalHost ? 'http://127.0.0.1:8000/v1' : '/v1')
 
 let authToken: string | null = null
 
@@ -61,7 +65,7 @@ export const getErrorMessage = (error: unknown): string => {
       return body.error.message
     }
     if (!error.response) {
-      return 'Cannot reach the backend API. Start FastAPI on http://127.0.0.1:8000 and try again.'
+      return `Cannot reach the backend API at ${API_BASE_URL}. Check VITE_API_BASE_URL, backend availability, and CORS.`
     }
     return error.message
   }
@@ -140,12 +144,16 @@ export const studentsApi = {
 
 export const recognitionApi = {
   enroll: async (payload: EnrollRequest): Promise<EnrollResponse> => {
-    const { data } = await api.post<EnrollResponse>('/recognition/enroll', payload)
+    const { data } = await api.post<EnrollResponse>('/recognition/enroll', payload, {
+      timeout: 45_000,
+    })
     return data
   },
 
   identify: async (payload: IdentifyRequest): Promise<IdentifyResponse> => {
-    const { data } = await api.post<IdentifyResponse>('/recognition/identify', payload)
+    const { data } = await api.post<IdentifyResponse>('/recognition/identify', payload, {
+      timeout: 45_000,
+    })
     return data
   },
 

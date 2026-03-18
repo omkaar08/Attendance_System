@@ -142,15 +142,18 @@ async def mark_attendance_manual(
     # Check for duplicate attendance record on the same date
     existing = (
         await session.execute(
-            select(Attendance).where(
+            select(Attendance)
+            .where(
                 and_(
                     Attendance.subject_id == payload.subject_id,
                     Attendance.student_id == payload.student_id,
                     Attendance.class_date == payload.class_date,
                 )
             )
+            .order_by(Attendance.created_at.desc())
+            .limit(1)
         )
-    ).scalar_one_or_none()
+    ).scalar()
 
     if existing:
         return AttendanceMarkResponse(

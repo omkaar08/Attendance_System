@@ -178,5 +178,7 @@ async def faculty_can_manage_cohort(
             Subject.section == section,
             Subject.is_active.is_(True),
         )
-    )
-    return (await session.execute(statement)).scalar_one_or_none() is not None
+    ).limit(1)
+    # A faculty can legitimately own multiple subjects in one cohort;
+    # use a bounded existence check instead of scalar_one_or_none().
+    return (await session.execute(statement)).scalar() is not None

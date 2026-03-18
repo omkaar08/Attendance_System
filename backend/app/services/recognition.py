@@ -361,14 +361,17 @@ async def identify_faces(
             # check for existing attendance first (anti-duplicate)
             existing = (
                 await session.execute(
-                    select(Attendance.id).where(
+                    select(Attendance.id)
+                    .where(
                         Attendance.student_id == student_id,
                         Attendance.subject_id == subject.id,
                         Attendance.class_date == payload.class_date,
                         Attendance.session_key == payload.session_key,
                     )
+                    .order_by(Attendance.created_at.desc())
+                    .limit(1)
                 )
-            ).scalar_one_or_none()
+            ).scalar()
 
             if existing is not None:
                 attendance_id = existing
